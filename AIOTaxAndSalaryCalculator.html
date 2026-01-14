@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All-In-One Tax & Salary Calculator (FY 24-25)</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --text: #1f2937;
+            --text-light: #64748b;
+            --border: #e5e7eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --secondary: #64748b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body { background-color: var(--bg); color: var(--text); padding: 20px; line-height: 1.5; }
+        
+        .container { max-width: 1100px; margin: 0 auto; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); overflow: hidden; }
+
+        /* Header & Tabs */
+        .header { background: var(--primary); color: white; padding: 25px; text-align: center; }
+        .header h1 { font-size: 1.8rem; margin-bottom: 5px; }
+        .header p { font-size: 0.95rem; opacity: 0.9; }
+
+        .tabs { display: flex; cursor: pointer; background: #e0e7ff; flex-wrap: wrap; }
+        .tab { flex: 1; padding: 15px; text-align: center; font-weight: 600; color: var(--text); border-bottom: 3px solid transparent; transition: 0.3s; min-width: 150px; }
+        .tab:hover { background: #dbeafe; }
+        .tab.active { border-bottom: 3px solid var(--primary); color: var(--primary); background: white; }
+
+        /* Content Sections */
+        .content { display: none; padding: 30px; }
+        .content.active { display: block; }
+
+        /* Universal Grid */
+        .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        @media (max-width: 768px) { .grid-layout { grid-template-columns: 1fr; gap: 20px; } }
+
+        /* Forms & Inputs */
+        .form-group, .input-group { margin-bottom: 20px; }
+        label { display: block; font-size: 0.95rem; font-weight: 500; margin-bottom: 6px; color: #4b5563; }
+        
+        input, select { 
+            width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; 
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        
+        .note { font-size: 0.75rem; color: #6b7280; margin-top: 4px; }
+        
+        .input-wrapper { position: relative; display: flex; align-items: center; }
+        .currency-symbol { position: absolute; left: 12px; color: var(--text-light); }
+        .input-wrapper input { padding-left: 30px; }
+
+        /* Result Styles (From take-home) */
+        .result-box { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+        .result-header { padding: 12px 15px; font-weight: bold; text-align: center; color: white; }
+        .old-header { background: #4f46e5; }
+        .new-header { background: #059669; }
+        
+        .result-body { padding: 15px; background: #fafafa; }
+        .result-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.95rem; }
+        .result-row.total { font-weight: bold; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px; font-size: 1.1rem; color: var(--primary-dark); }
+        .highlight-green { color: var(--success); font-weight: bold; }
+        .highlight-red { color: var(--danger); font-weight: bold; }
+
+        /* Comparison Cards (From finance-info) */
+        .tax-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+        .regime-card { background: #f1f5f9; padding: 20px; border-radius: 12px; border: 2px solid transparent; text-align: center; }
+        .regime-card.winner { border-color: var(--success); background: #ecfdf5; }
+        .regime-title { font-weight: bold; margin-bottom: 10px; display: block; color: var(--text-light); }
+        .regime-tax { font-size: 1.6rem; font-weight: 800; color: var(--text); margin-bottom: 15px; }
+        .breakdown-item { display: flex; justify-content: space-between; font-size: 0.9rem; padding: 5px 0; border-top: 1px solid #e2e8f0; }
+
+        /* Tables (From Rules) */
+        .tax-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
+        .tax-table th, .tax-table td { border: 1px solid var(--border); padding: 12px; text-align: left; font-size: 0.95rem; }
+        .tax-table th { background-color: #f8fafc; color: var(--primary-dark); font-weight: 600; }
+        
+        .section-title { font-size: 1.2rem; color: var(--primary-dark); margin: 25px 0 15px 0; padding-bottom: 5px; border-bottom: 2px solid #e2e8f0; }
+
+        #recommendation, #tax-recommendation { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>🇮🇳 All-In-One Tax & Salary Hub</h1>
+        <p>FY 2024-25 (AY 2025-26)</p>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('salary')">In-Hand Salary Calculator</div>
+        <div class="tab" onclick="switchTab('tax')">Total Tax Calculator</div>
+        <div class="tab" onclick="switchTab('rules')">Tax Rules Info</div>
+    </div>
+
+    <!-- TAB 1: In-Hand Salary Calculator -->
+    <div id="salary" class="content active">
+        <div class="grid-layout">
+            <div class="inputs">
+                <h3>Salary Structure Details</h3>
+                <div class="form-group">
+                    <label>Total Annual CTC (₹)</label>
+                    <input type="number" id="ctc" placeholder="e.g. 1500000" oninput="calculateSalary()">
+                </div>
+                <div class="form-group">
+                    <label>Basic Salary (Yearly ₹)</label>
+                    <input type="number" id="basic" placeholder="Usually 40-50% of CTC" oninput="calculateSalary()">
+                    <div class="note">Expected around 40-50% of CTC. Used for HRA.</div>
+                </div>
+                
+                <h3 style="margin-top: 25px; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px;">Deductions (Old Regime)</h3>
+                <div class="form-group">
+                    <label>Section 80C (EPF, PPF, LIC, etc.)</label>
+                    <input type="number" id="80c" placeholder="Max 1.5 Lakh" oninput="calculateSalary()">
+                </div>
+                <div class="form-group">
+                    <label>Section 80D (Medical Insurance)</label>
+                    <input type="number" id="80d" placeholder="e.g. 25000" oninput="calculateSalary()">
+                </div>
+                <div class="form-group">
+                    <label>HRA Exemption</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <input type="number" id="rentPaid" placeholder="Annual Rent Paid" oninput="calculateSalary()">
+                    </div>
+                    <select id="metro" onchange="calculateSalary()">
+                        <option value="false">Non-Metro City (40% of Basic)</option>
+                        <option value="true">Metro City (50% of Basic)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Other Deductions (LTA, 80E, etc.)</label>
+                    <input type="number" id="otherDeductions" placeholder="Total other deductions" oninput="calculateSalary()">
+                </div>
+            </div>
+
+            <div class="results">
+                <h3>Regime Comparison</h3>
+                
+                <div class="result-box">
+                    <div class="result-header new-header">New Regime (Default)</div>
+                    <div class="result-body">
+                        <div class="result-row"><span>Gross Salary</span><span id="new-gross">0</span></div>
+                        <div class="result-row"><span>Std Deduction</span><span class="highlight-green" id="new-std">75,000</span></div>
+                        <div class="result-row"><span>Taxable Income</span><span id="new-taxable">0</span></div>
+                        <div class="result-row"><span>Income Tax + Cess</span><span id="new-tax">0</span></div>
+                        <div class="result-row total"><span>Net In-Hand (Yearly)</span><span id="new-inhand">0</span></div>
+                        <div class="result-row total" style="font-size: 0.95rem; color: #555; border:none; padding-top:0;"><span>In-Hand (Monthly)</span><span id="new-monthly">0</span></div>
+                    </div>
+                </div>
+
+                <div class="result-box">
+                    <div class="result-header old-header">Old Regime</div>
+                    <div class="result-body">
+                        <div class="result-row"><span>Gross Salary</span><span id="old-gross">0</span></div>
+                        <div class="result-row"><span>HRA Exemption</span><span class="highlight-green" id="old-hra">0</span></div>
+                        <div class="result-row"><span>Total Deductions</span><span class="highlight-green" id="old-deductions">0</span></div>
+                        <div class="result-row"><span>Taxable Income</span><span id="old-taxable">0</span></div>
+                        <div class="result-row"><span>Income Tax + Cess</span><span id="old-tax">0</span></div>
+                        <div class="result-row total"><span>Net In-Hand (Yearly)</span><span id="old-inhand">0</span></div>
+                        <div class="result-row total" style="font-size: 0.95rem; color: #555; border:none; padding-top:0;"><span>In-Hand (Monthly)</span><span id="old-monthly">0</span></div>
+                    </div>
+                </div>
+
+                <div id="recommendation" style="background: #e0f2fe; border: 1px solid #7dd3fc; color: #0369a1;">
+                    Enter salary details to see recommendation.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: Total Tax Calculator -->
+    <div id="tax" class="content">
+        <div class="grid-layout">
+            <div class="input-section">
+                <h3>Income Sources</h3>
+                <div class="input-group">
+                    <label>Gross Annual Salary / Income</label>
+                    <div class="input-wrapper">
+                        <span class="currency-symbol">₹</span>
+                        <input type="number" id="tax-income" value="1200000" oninput="calculateTotalTax()">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Other Income (Interest, Rental, etc.)</label>
+                    <div class="input-wrapper">
+                        <span class="currency-symbol">₹</span>
+                        <input type="number" id="tax-other" value="0" oninput="calculateTotalTax()">
+                    </div>
+                </div>
+
+                <h3 class="section-title">Tax Saving Deductions (Old Regime)</h3>
+                <div class="input-group">
+                    <label>Section 80C (Max ₹1.5L)</label>
+                    <div class="input-wrapper">
+                        <span class="currency-symbol">₹</span>
+                        <input type="number" id="tax-80c" value="150000" oninput="calculateTotalTax()">
+                    </div>
+                    <div class="note">EPF, PPF, ELSS, Life Insurance premiums</div>
+                </div>
+                <div class="input-group">
+                    <label>Section 80D (Health Insurance)</label>
+                    <div class="input-wrapper">
+                        <span class="currency-symbol">₹</span>
+                        <input type="number" id="tax-80d" value="25000" oninput="calculateTotalTax()">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>HRA Exemption Amount</label>
+                    <div class="input-wrapper">
+                        <span class="currency-symbol">₹</span>
+                        <input type="number" id="tax-hra" value="0" oninput="calculateTotalTax()">
+                    </div>
+                    <div class="note">Enter calculated HRA exemption amount, not rent paid.</div>
+                </div>
+            </div>
+
+            <div class="result-section">
+                <h3>Tax Liability Breakdown</h3>
+                <div class="tax-comparison">
+                    <div class="regime-card" id="card-old">
+                        <span class="regime-title">Old Regime</span>
+                        <div class="regime-tax" id="tax-old">₹0</div>
+                        <div class="breakdown-item">
+                            <span>Taxable Income:</span>
+                            <span id="taxable-old">₹0</span>
+                        </div>
+                    </div>
+                    <div class="regime-card" id="card-new">
+                        <span class="regime-title">New Regime</span>
+                        <div class="regime-tax" id="tax-new">₹0</div>
+                        <div class="breakdown-item">
+                            <span>Taxable Income:</span>
+                            <span id="taxable-new">₹0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tax-recommendation" style="background: #f1f5f9; color: #475569;">
+                    Calculating best option...
+                </div>
+                
+                <div style="margin-top: 25px; background: #fff; padding: 20px; border-radius: 8px; border: 1px solid var(--border);">
+                    <h4 style="margin-bottom: 10px;">Quick Facts (FY 24-25)</h4>
+                    <ul style="font-size: 0.9rem; color: var(--text-light); padding-left: 20px; line-height: 1.6;">
+                        <li><strong>Standard Deduction:</strong> ₹75,000 (New) vs ₹50,000 (Old)</li>
+                        <li><strong>Rebate Limit (Tax Free):</strong> Income up to ₹7 Lakh (New) vs ₹5 Lakh (Old)</li>
+                        <li><strong>Surcharge:</strong> Max 25% (New) vs 37% (Old &gt; 5Cr)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: Tax Rules -->
+    <div id="rules" class="content">
+        <h2>Indian Tax Structure (FY 2024-25)</h2>
+        <p style="margin-bottom: 25px; color: var(--text-light);">Detailed comparison of income tax slabs and available deductions.</p>
+
+        <h3>1. Income Tax Slabs</h3>
+        <table class="tax-table">
+            <thead>
+                <tr>
+                    <th>Income Range</th>
+                    <th>New Regime Rates</th>
+                    <th>Old Regime Rates</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>0 - ₹2,50,000</td>
+                    <td>Nil</td>
+                    <td>Nil</td>
+                </tr>
+                <tr>
+                    <td>₹2,50,001 - ₹3,00,000</td>
+                    <td>Nil</td>
+                    <td>5%</td>
+                </tr>
+                <tr>
+                    <td>₹3,00,001 - ₹5,00,000</td>
+                    <td>5%</td>
+                    <td>5%</td>
+                </tr>
+                <tr>
+                    <td>₹5,00,001 - ₹7,00,000</td>
+                    <td>5%</td>
+                    <td>20%</td>
+                </tr>
+                <tr>
+                    <td>₹7,00,001 - ₹10,00,000</td>
+                    <td>10%</td>
+                    <td>20%</td>
+                </tr>
+                <tr>
+                    <td>₹10,00,001 - ₹12,00,000</td>
+                    <td>15%</td>
+                    <td>30%</td>
+                </tr>
+                <tr>
+                    <td>₹12,00,001 - ₹15,00,000</td>
+                    <td>20%</td>
+                    <td>30%</td>
+                </tr>
+                <tr>
+                    <td>Above ₹15,00,000</td>
+                    <td>30%</td>
+                    <td>30%</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>2. Deductions Comparison</h3>
+        <table class="tax-table">
+            <thead>
+                <tr>
+                    <th>Deduction Type</th>
+                    <th>New Regime</th>
+                    <th>Old Regime</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Standard Deduction</td>
+                    <td>₹75,000</td>
+                    <td>₹50,000</td>
+                </tr>
+                <tr>
+                    <td>Section 80C</td>
+                    <td class="highlight-red">Not Allowed</td>
+                    <td>Allowed (Max ₹1.5L)</td>
+                </tr>
+                <tr>
+                    <td>HRA Exemption</td>
+                    <td class="highlight-red">Not Allowed</td>
+                    <td>Allowed</td>
+                </tr>
+                <tr>
+                    <td>Health Insurance (80D)</td>
+                    <td class="highlight-red">Not Allowed</td>
+                    <td>Allowed</td>
+                </tr>
+                <tr>
+                    <td>Tax Rebate (87A)</td>
+                    <td>Income up to ₹7 Lakh<br>(Tax = 0)</td>
+                    <td>Income up to ₹5 Lakh<br>(Tax = 0)</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+    // --- UTILITIES ---
+    function formatCurrency(num) {
+        return "₹" + Math.round(num).toLocaleString('en-IN');
+    }
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+        
+        document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+    }
+
+    // --- SHARED TAX LOGIC ---
+
+    // New Regime Tax Logic (FY 24-25)
+    // Slabs: 0-3L (Nil), 3-7L (5%), 7-10L (10%), 10-12L (15%), 12-15L (20%), >15L (30%)
+    function calculateNewRegimeTaxLogic(income) {
+        let tax = 0;
+        let originalIncome = income;
+        
+        if (income > 1500000) {
+            tax += (income - 1500000) * 0.30;
+            income = 1500000;
+        }
+        if (income > 1200000) {
+            tax += (income - 1200000) * 0.20;
+            income = 1200000;
+        }
+        if (income > 1000000) {
+            tax += (income - 1000000) * 0.15;
+            income = 1000000;
+        }
+        if (income > 700000) {
+            tax += (income - 700000) * 0.10;
+            income = 700000;
+        }
+        if (income > 300000) {
+            tax += (income - 300000) * 0.05;
+        }
+
+        // Rebate u/s 87A: If taxable income <= 7L, Tax is 0.
+        // Also handle marginal relief for slightly above 7L (simplification: exact logic is complex but key is tax shouldn't > income excess)
+         if (originalIncome <= 700000) {
+            return 0;
+        } else if (originalIncome < 727777 && tax > (originalIncome - 700000)) {
+            // Marginal relief approximation
+            tax = originalIncome - 700000;
+        }
+
+        return tax;
+    }
+
+    // Old Regime Tax Logic
+    // Slabs: 0-2.5L (Nil), 2.5-5L (5%), 5-10L (20%), >10L (30%)
+    function calculateOldRegimeTaxLogic(income) {
+        let tax = 0;
+        
+        if (income <= 500000) return 0; // Rebate u/s 87A
+
+        if (income > 1000000) {
+            tax += (income - 1000000) * 0.30;
+            tax += 112500; // Tax for 10L (12500 + 100000)
+        } else if (income > 500000) {
+            tax += (income - 500000) * 0.20;
+            tax += 12500; // Tax for 5L
+        } else if (income > 250000) {
+            tax += (income - 250000) * 0.05;
+        }
+        return tax;
+    }
+
+    function getSurcharge(tax, income, regime) {
+        let rate = 0;
+        if (income > 5000000 && income <= 10000000) rate = 0.10;
+        else if (income > 10000000 && income <= 20000000) rate = 0.15;
+        else if (income > 20000000) {
+            rate = 0.25;
+            if (regime === 'old' && income > 50000000) rate = 0.37;
+        }
+        return tax * rate;
+    }
+
+    function getFinalTax(taxableIncome, regime) {
+        if (taxableIncome <= 0) return 0;
+        
+        let baseTax = (regime === 'new') ? calculateNewRegimeTaxLogic(taxableIncome) : calculateOldRegimeTaxLogic(taxableIncome);
+        let surcharge = getSurcharge(baseTax, taxableIncome, regime);
+        let cess = (baseTax + surcharge) * 0.04;
+        
+        return baseTax + surcharge + cess;
+    }
+
+
+    // --- TAB 1: SALARY CALCULATOR LOGIC ---
+    function calculateSalary() {
+        const ctc = parseFloat(document.getElementById('ctc').value) || 0;
+        const basic = parseFloat(document.getElementById('basic').value) || 0;
+        
+        // Old Regime Inputs
+        const rentPaid = parseFloat(document.getElementById('rentPaid').value) || 0;
+        const isMetro = document.getElementById('metro').value === 'true';
+        let ded80c = parseFloat(document.getElementById('80c').value) || 0;
+        const ded80d = parseFloat(document.getElementById('80d').value) || 0;
+        const otherDed = parseFloat(document.getElementById('otherDeductions').value) || 0;
+
+        if (ded80c > 150000) ded80c = 150000;
+
+        // HRA Calculation
+        let hraExemption = 0;
+        if (rentPaid > 0 && basic > 0) {
+            const rule1 = rentPaid - (0.10 * basic);
+            const rule2 = isMetro ? (0.50 * basic) : (0.40 * basic);
+            hraExemption = Math.max(0, Math.min(rule1, rule2));
+        }
+
+        // --- OLD REGIME ---
+        const oldStdDed = 50000;
+        const totalOldDed = ded80c + ded80d + otherDed + hraExemption + oldStdDed;
+        let oldTaxable = Math.max(0, ctc - totalOldDed);
+        let oldTax = getFinalTax(oldTaxable, 'old');
+
+        // --- NEW REGIME ---
+        const newStdDed = 75000;
+        let newTaxable = Math.max(0, ctc - newStdDed);
+        let newTax = getFinalTax(newTaxable, 'new');
+
+        // --- UPDATE UI ---
+        // New
+        document.getElementById('new-gross').innerText = formatCurrency(ctc);
+        document.getElementById('new-taxable').innerText = formatCurrency(newTaxable);
+        document.getElementById('new-tax').innerText = formatCurrency(newTax);
+        document.getElementById('new-inhand').innerText = formatCurrency(ctc - newTax);
+        document.getElementById('new-monthly').innerText = formatCurrency((ctc - newTax)/12);
+
+        // Old
+        document.getElementById('old-gross').innerText = formatCurrency(ctc);
+        document.getElementById('old-hra').innerText = formatCurrency(hraExemption);
+        document.getElementById('old-deductions').innerText = formatCurrency(totalOldDed);
+        document.getElementById('old-taxable').innerText = formatCurrency(oldTaxable);
+        document.getElementById('old-tax').innerText = formatCurrency(oldTax);
+        document.getElementById('old-inhand').innerText = formatCurrency(ctc - oldTax);
+        document.getElementById('old-monthly').innerText = formatCurrency((ctc - oldTax)/12);
+
+        // Recommendation
+        const newInHand = ctc - newTax;
+        const oldInHand = ctc - oldTax;
+        const recBox = document.getElementById('recommendation');
+        
+        let diff = newInHand - oldInHand;
+        if (Math.abs(diff) < 100) {
+            recBox.innerText = "Both regimes offer similar in-hand salary.";
+            recBox.style.backgroundColor = "#e0f2fe";
+            recBox.style.borderColor = "#7dd3fc";
+            recBox.style.color = "#0369a1";
+        } else if (diff > 0) {
+            recBox.innerText = `Recommendation: New Regime (Save ${formatCurrency(diff)}/yr)`;
+            recBox.style.backgroundColor = "#dcfce7";
+            recBox.style.borderColor = "#86efac";
+            recBox.style.color = "#166534";
+        } else {
+            recBox.innerText = `Recommendation: Old Regime (Save ${formatCurrency(Math.abs(diff))}/yr)`;
+            recBox.style.backgroundColor = "#fff7ed";
+            recBox.style.borderColor = "#fdba74";
+            recBox.style.color = "#9a3412";
+        }
+    }
+
+
+    // --- TAB 2: TOTAL TAX CALCULATOR LOGIC ---
+    function calculateTotalTax() {
+        const grossIncome = parseFloat(document.getElementById('tax-income').value) || 0;
+        const otherIncome = parseFloat(document.getElementById('tax-other').value) || 0;
+        const totalIncome = grossIncome + otherIncome;
+
+        const ded80c = Math.min(parseFloat(document.getElementById('tax-80c').value) || 0, 150000);
+        const ded80d = parseFloat(document.getElementById('tax-80d').value) || 0;
+        const hra = parseFloat(document.getElementById('tax-hra').value) || 0;
+
+        // --- OLD REGIME ---
+        let taxableOld = Math.max(0, totalIncome - 50000 - ded80c - ded80d - hra);
+        let taxOld = getFinalTax(taxableOld, 'old');
+
+        // --- NEW REGIME ---
+        let taxableNew = Math.max(0, totalIncome - 75000);
+        let taxNew = getFinalTax(taxableNew, 'new');
+
+        // --- RENDER ---
+        document.getElementById('taxable-old').innerText = formatCurrency(taxableOld);
+        document.getElementById('taxable-new').innerText = formatCurrency(taxableNew);
+        document.getElementById('tax-old').innerText = formatCurrency(taxOld);
+        document.getElementById('tax-new').innerText = formatCurrency(taxNew);
+
+        // Card Styling
+        const cardOld = document.getElementById('card-old');
+        const cardNew = document.getElementById('card-new');
+        const recBox = document.getElementById('tax-recommendation');
+
+        cardOld.classList.remove('winner');
+        cardNew.classList.remove('winner');
+
+        if (taxNew < taxOld) {
+            cardNew.classList.add('winner');
+            recBox.innerHTML = `🌟 <strong>New Regime</strong> saves you <strong>${formatCurrency(taxOld - taxNew)}</strong> in tax!`;
+            recBox.style.backgroundColor = '#ecfdf5';
+            recBox.style.color = '#065f46';
+        } else if (taxOld < taxNew) {
+            cardOld.classList.add('winner');
+            recBox.innerHTML = `💎 <strong>Old Regime</strong> saves you <strong>${formatCurrency(taxNew - taxOld)}</strong> in tax!`;
+            recBox.style.backgroundColor = '#ecfdf5';
+            recBox.style.color = '#065f46';
+        } else {
+            recBox.innerHTML = `⚖️ Both regimes have equal tax liability.`;
+            recBox.style.backgroundColor = '#f1f5f9';
+            recBox.style.color = '#475569';
+        }
+    }
+
+    // Initial Calculation
+    calculateSalary();
+    calculateTotalTax();
+
+</script>
+
+</body>
+</html>

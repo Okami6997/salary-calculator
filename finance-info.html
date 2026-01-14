@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Financial Calculator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #64748b;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-light: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            color: var(--text-main);
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Tabs Styling */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 0.75rem 2rem;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-light);
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
+        /* Content Area */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .input-section, .result-section {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+
+        /* Form Elements */
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .currency-symbol {
+            position: absolute;
+            left: 1rem;
+            color: var(--text-light);
+        }
+
+        input[type="number"], select {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Range Slider */
+        .range-container {
+            margin-top: 0.5rem;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        /* Results Styling */
+        .result-card {
+            text-align: center;
+            padding: 1.5rem;
+            background: var(--bg-color);
+            border-radius: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .result-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0.5rem 0;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .breakdown-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Tax Specific Styles */
+        .tax-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .regime-card {
+            background: #f1f5f9;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            border: 2px solid transparent;
+        }
+
+        .regime-card.winner {
+            border-color: var(--success);
+            background: #ecfdf5;
+        }
+
+        .regime-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            display: block;
+            text-align: center;
+        }
+
+        .regime-tax {
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+            color: var(--text-main);
+        }
+        
+        .section-title {
+            grid-column: 1 / -1;
+            font-size: 1.2rem;
+            color: var(--primary-dark);
+            margin: 1.5rem 0 1rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .badge-success { background: #d1fae5; color: #065f46; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+
+        @media (max-width: 768px) {
+            .grid-layout { grid-template-columns: 1fr; }
+            .tax-comparison { grid-template-columns: 1fr; }
+            body { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Finance Master</h1>
+            <p>Your comprehensive financial planning suite</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('sip')">SIP Calculator</button>
+            <button class="tab-btn" onclick="switchTab('lumpsum')">Lumpsum</button>
+            <button class="tab-btn" onclick="switchTab('tax')">Tax Calculator (FY 24-25)</button>
+        </div>
+
+        <div id="sip-tab" class="tab-content active">
+            <div class="grid-layout">
+                <div class="input-section">
+                    <div class="input-group">
+                        <label>Monthly Investment</label>
+                        <div class="input-wrapper">
+                            <span class="currency-symbol">₹</span>
+                            <input type="number" id="sip-amount" value="5000" oninput="updateSIP()">
+                        </div>
+                        <div class="range-container">
+                            <input type="range" min="500" max="100000" step="500" value="5000" oninput="syncInput('sip-amount', this.value); updateSIP()">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Expected Return Rate (p.a)</label>
+                        <div class="input-wrapper">
+                            <span class="currency-symbol">%</span>
+                            <input type="number" id="sip-rate" value="12" oninput="updateSIP()">
+                        </div>
+                        <div class="range-container">
+                            <input type="range" min="1" max="30" step="0.1" value="12" oninput="syncInput('sip-rate', this.value); updateSIP()">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Time Period (Years)</label>
+                        <div class="input-wrapper">
+                            <span class="currency-symbol">Yr</span>
+                            <input type="number" id="sip-years" value="10" oninput="updateSIP()">
+                        </div>
+                        <div class="range-container">
+                            <input type="range" min="1" max="40" value="10" oninput="syncInput('sip-years', this.value); updateSIP()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-section">
+                    <div class="result-card">
+                        <h3>Total Wealth Generated</h3>
+                        <div class="result-value" id="sip-total">₹0</div>
+                    </div>
+                    <div class="breakdown">
+                        <div class="breakdown-item">
+                            <span>Invested Amount</span>
+                            <span id="sip-invested" style="font-weight: 600">₹0</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span>Est. Returns</span>
+                            <span id="sip-returns" style="font-weight: 600; color: var(--success)">₹0</span>
+                        </div>
+                    </div>
+                    <canvas id="sipChart" style="margin-top: 2rem"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div id="lumpsum-tab" class="tab-content">
+            <div class="grid-layout">
+                <div class="input-section">
+                    <div class="input-group">
+                        <label>Total Investment</label>
+                        <div class="input-wrapper">
+                            <span class="currency-symbol">₹</span>
+                            <input type="number" id="ls-amount" value="100000" oninput="updateLumpsum()">
+                        </div>
+                        <div class="range-container">
+                            <input type="range" min="5000" max="5000000" step="5000" value="100000" oninput="syncInput('ls-amount', this.value); updateLumpsum()">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Expected Return Rate (p.a)</label>
+                        <div class="input-wrapper">
+                            <span class="currency-symbol">%</span>
+                            <input type="number" id="ls-rate" value="12" oninput="updateLumpsum()">
+                        </div>
+                        <div class="range-container">
+                            <input type="range" min="1" max="30" step="0.1" value="12" oninput="syncInput('ls-rate', this.value); updateLumpsum()">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Time Period (Years)</label>
+                        <div class="input-wrapper">
+                            <span class="currency-symbol">Yr</span>
+                            <input type="number" id="ls-years" value="10" oninput="updateLumpsum()">
+                        </div>
+                        <div class="range-container">
+                            <input type="range" min="1" max="40" value="10" oninput="syncInput('ls-years', this.value); updateLumpsum()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-section">
+                    <div class="result-card">
+                        <h3>Total Maturity Value</h3>
+                        <div class="result-value" id="ls-total">₹0</div>
+                    </div>
+                    <div class="breakdown">
+                        <div class="breakdown-item">
+                            <span>Invested Amount</span>
+                            <span id="ls-invested" style="font-weight: 600">₹0</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span>Est. Returns</span>
+                            <span id="ls-returns" style="font-weight: 600; color: var(--success)">₹0</span>
+                        </div>
+                    </div>
+                    <canvas id="lsChart" style="margin-top: 2rem"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div id="tax-tab" class="tab-content">
+            <div class="grid-layout">
+                <div class="input-section">
+                    <h3>Income Details (FY 2024-25)</h3>
+                    <div class="input-group">
+                        <label>Gross Annual Salary / Income</label>
+                        <div class="input-wrapper">
+                            <span class="currency-symbol">₹</span>
+                            <input type="number" id="tax-income" value="1200000" oninput="updateTax()">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Other Income (Interest, etc.)</label>
+                        <div class="input-wrapper">
+                            <span class="currency-symbol">₹</span>
+                            <input type="number" id="tax-other" value="0" oninput="updateTax()">
+                        </div>
+                    </div>
+
+                    <h3 class="section-title">Deductions (Old Regime Only)</h3>
+                    <div class="input-group">
+                        <label>Section 80C (Max 1.5L)</label>
+                        <div class="input-wrapper">
+                            <span class="currency-symbol">₹</span>
+                            <input type="number" id="tax-80c" value="150000" oninput="updateTax()">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Section 80D (Health Ins.)</label>
+                        <div class="input-wrapper">
+                            <span class="currency-symbol">₹</span>
+                            <input type="number" id="tax-80d" value="25000" oninput="updateTax()">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>HRA Exemption</label>
+                        <div class="input-wrapper">
+                            <span class="currency-symbol">₹</span>
+                            <input type="number" id="tax-hra" value="0" oninput="updateTax()">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Standard Deduction</label>
+                        <div class="breakdown-item">
+                            <span>Old Regime: ₹50,000</span>
+                            <span>New Regime: ₹75,000</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-section">
+                    <h3>Tax Liability Comparison</h3>
+                    <div class="tax-comparison">
+                        <div class="regime-card" id="card-old">
+                            <span class="regime-title">Old Regime</span>
+                            <div class="regime-tax" id="tax-old">₹0</div>
+                            <div class="breakdown-item" style="margin-top:1rem; font-size:0.9rem">
+                                <span>Taxable Income:</span>
+                                <span id="taxable-old">₹0</span>
+                            </div>
+                        </div>
+                        <div class="regime-card" id="card-new">
+                            <span class="regime-title">New Regime</span>
+                            <div class="regime-tax" id="tax-new">₹0</div>
+                            <div class="breakdown-item" style="margin-top:1rem; font-size:0.9rem">
+                                <span>Taxable Income:</span>
+                                <span id="taxable-new">₹0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="recommendation" style="margin-top: 2rem; padding: 1rem; background: #e0f2fe; border-radius: 0.5rem; text-align: center; color: var(--primary-dark); font-weight: 600;">
+                        Calculating best option...
+                    </div>
+                    
+                    <div style="margin-top: 1.5rem;">
+                        <h4>Calculation Logic Used:</h4>
+                        <ul style="font-size: 0.85rem; color: var(--secondary); padding-left: 1.2rem; margin-top: 0.5rem;">
+                            <li><strong>New Regime:</strong> SD ₹75,000. Rebate u/s 87A if income ≤ ₹7L. Slabs: 0-3L (Nil), 3-7L (5%), 7-10L (10%), 10-12L (15%), 12-15L (20%), >15L (30%).</li>
+                            <li><strong>Old Regime:</strong> SD ₹50,000. Rebate u/s 87A if income ≤ ₹5L. Slabs: 0-2.5L (Nil), 2.5-5L (5%), 5-10L (20%), >10L (30%).</li>
+                            <li>Includes 4% Cess on Tax + Surcharge.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Utilities ---
+        const formatCurrency = (amount) => {
+            return new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                maximumFractionDigits: 0
+            }).format(amount);
+        };
+
+        const syncInput = (id, value) => {
+            document.getElementById(id).value = value;
+        };
+
+        const switchTab = (tabName) => {
+            // Update buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            // Trigger recalculation for charts
+            if(tabName === 'sip') updateSIP();
+            if(tabName === 'lumpsum') updateLumpsum();
+            if(tabName === 'tax') updateTax();
+        };
+
+        // --- Chart Config ---
+        let sipChartInstance = null;
+        let lsChartInstance = null;
+
+        const updateChart = (canvasId, invested, returns) => {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            const data = {
+                labels: ['Invested Amount', 'Est. Returns'],
+                datasets: [{
+                    data: [invested, returns],
+                    backgroundColor: ['#e2e8f0', '#2563eb'],
+                    borderWidth: 0
+                }]
+            };
+            
+            const config = {
+                type: 'doughnut',
+                data: data,
+                options: {
+                    cutout: '70%',
+                    plugins: { legend: { display: false } },
+                    animation: { duration: 500 }
+                }
+            };
+
+            if (canvasId === 'sipChart') {
+                if (sipChartInstance) sipChartInstance.destroy();
+                sipChartInstance = new Chart(ctx, config);
+            } else {
+                if (lsChartInstance) lsChartInstance.destroy();
+                lsChartInstance = new Chart(ctx, config);
+            }
+        };
+
+        // --- Logic: SIP ---
+        function updateSIP() {
+            const p = parseFloat(document.getElementById('sip-amount').value) || 0;
+            const r = parseFloat(document.getElementById('sip-rate').value) || 0;
+            const t = parseFloat(document.getElementById('sip-years').value) || 0;
+
+            const i = r / 12 / 100;
+            const n = t * 12;
+            
+            let fv = 0;
+            if (p > 0 && r > 0 && t > 0) {
+                fv = p * (((Math.pow(1 + i, n)) - 1) / i) * (1 + i);
+            }
+
+            const invested = p * n;
+            const returns = fv - invested;
+
+            document.getElementById('sip-total').innerText = formatCurrency(fv);
+            document.getElementById('sip-invested').innerText = formatCurrency(invested);
+            document.getElementById('sip-returns').innerText = formatCurrency(returns);
+
+            updateChart('sipChart', invested, returns);
+        }
+
+        // --- Logic: Lumpsum ---
+        function updateLumpsum() {
+            const p = parseFloat(document.getElementById('ls-amount').value) || 0;
+            const r = parseFloat(document.getElementById('ls-rate').value) || 0;
+            const t = parseFloat(document.getElementById('ls-years').value) || 0;
+
+            let fv = 0;
+            if (p > 0 && r > 0 && t > 0) {
+                fv = p * Math.pow((1 + r / 100), t);
+            }
+
+            const returns = fv - p;
+
+            document.getElementById('ls-total').innerText = formatCurrency(fv);
+            document.getElementById('ls-invested').innerText = formatCurrency(p);
+            document.getElementById('ls-returns').innerText = formatCurrency(returns);
+
+            updateChart('lsChart', p, returns);
+        }
+
+        // --- Logic: Tax Calculator (FY 2024-25) ---
+        function calculateTax(income, regime) {
+            let tax = 0;
+            let slabs = [];
+            
+            // 1. Determine Slabs & Rebate Limit
+            if (regime === 'new') {
+                // New Regime FY 24-25
+                // 0-3L: Nil, 3-7L: 5%, 7-10L: 10%, 10-12L: 15%, 12-15L: 20%, >15L: 30%
+                if (income <= 700000) return 0; // Rebate u/s 87A
+                
+                slabs = [
+                    { limit: 300000, rate: 0 },
+                    { limit: 700000, rate: 0.05 },
+                    { limit: 1000000, rate: 0.10 },
+                    { limit: 1200000, rate: 0.15 },
+                    { limit: 1500000, rate: 0.20 },
+                    { limit: Infinity, rate: 0.30 }
+                ];
+            } else {
+                // Old Regime
+                // 0-2.5L: Nil, 2.5-5L: 5%, 5-10L: 20%, >10L: 30%
+                if (income <= 500000) return 0; // Rebate u/s 87A (limit 12,500)
+                
+                slabs = [
+                    { limit: 250000, rate: 0 },
+                    { limit: 500000, rate: 0.05 },
+                    { limit: 1000000, rate: 0.20 },
+                    { limit: Infinity, rate: 0.30 }
+                ];
+            }
+
+            // 2. Calculate Base Tax
+            let previousLimit = 0;
+            for (let slab of slabs) {
+                if (income > previousLimit) {
+                    let taxableAmount = Math.min(income, slab.limit) - previousLimit;
+                    tax += taxableAmount * slab.rate;
+                    previousLimit = slab.limit;
+                } else {
+                    break;
+                }
+            }
+
+            // 3. Marginal Relief (Simple implementation for 7L New Regime edge case)
+            // If New Regime and income slightly > 7L, tax shouldn't exceed (Income - 7L)
+            if (regime === 'new' && income > 700000 && income <= 727770) {
+                 // 7,27,770 is approx breakeven point where normal calculation exceeds excess income
+                 let excessIncome = income - 700000;
+                 if (tax > excessIncome) {
+                     tax = excessIncome;
+                 }
+            }
+
+            // 4. Surcharge (simplified for individuals < 50L usually)
+            // >50L: 10%, >1Cr: 15%, >2Cr: 25%
+            let surcharge = 0;
+            if (income > 20000000) surcharge = tax * 0.25;
+            else if (income > 10000000) surcharge = tax * 0.15;
+            else if (income > 5000000) surcharge = tax * 0.10;
+            
+            tax += surcharge;
+
+            // 5. Health & Education Cess (4%)
+            tax += tax * 0.04;
+
+            return Math.round(tax);
+        }
+
+        function updateTax() {
+            // Inputs
+            const grossIncome = parseFloat(document.getElementById('tax-income').value) || 0;
+            const otherIncome = parseFloat(document.getElementById('tax-other').value) || 0;
+            const totalIncome = grossIncome + otherIncome;
+
+            // Deductions
+            const ded80c = Math.min(parseFloat(document.getElementById('tax-80c').value) || 0, 150000); // Cap at 1.5L
+            const ded80d = parseFloat(document.getElementById('tax-80d').value) || 0;
+            const hra = parseFloat(document.getElementById('tax-hra').value) || 0;
+            
+            // --- Old Regime Calculation ---
+            // Standard Deduction: 50k
+            let taxableOld = totalIncome - 50000; 
+            // Apply Chapter VI-A & Exemptions
+            taxableOld = taxableOld - ded80c - ded80d - hra;
+            if (taxableOld < 0) taxableOld = 0;
+            
+            const taxOld = calculateTax(taxableOld, 'old');
+
+            // --- New Regime Calculation ---
+            // Standard Deduction: 75k (Updated FY 24-25)
+            // No 80C, 80D, HRA allowed generally
+            let taxableNew = totalIncome - 75000;
+            if (taxableNew < 0) taxableNew = 0;
+
+            const taxNew = calculateTax(taxableNew, 'new');
+
+            // --- Render Results ---
+            document.getElementById('taxable-old').innerText = formatCurrency(taxableOld);
+            document.getElementById('taxable-new').innerText = formatCurrency(taxableNew);
+            
+            document.getElementById('tax-old').innerText = formatCurrency(taxOld);
+            document.getElementById('tax-new').innerText = formatCurrency(taxNew);
+
+            // Styling and Recommendation
+            const cardOld = document.getElementById('card-old');
+            const cardNew = document.getElementById('card-new');
+            const recBox = document.getElementById('recommendation');
+
+            cardOld.classList.remove('winner');
+            cardNew.classList.remove('winner');
+
+            if (taxNew < taxOld) {
+                cardNew.classList.add('winner');
+                const diff = taxOld - taxNew;
+                recBox.innerHTML = `🌟 <strong>New Regime</strong> saves you <strong>${formatCurrency(diff)}</strong> per year!`;
+                recBox.style.backgroundColor = '#ecfdf5';
+                recBox.style.color = '#065f46';
+            } else if (taxOld < taxNew) {
+                cardOld.classList.add('winner');
+                const diff = taxNew - taxOld;
+                recBox.innerHTML = `💎 <strong>Old Regime</strong> saves you <strong>${formatCurrency(diff)}</strong> per year!`;
+                recBox.style.backgroundColor = '#ecfdf5'; // same success color
+                recBox.style.color = '#065f46';
+            } else {
+                recBox.innerHTML = `⚖️ Both regimes offer the same tax liability.`;
+                recBox.style.backgroundColor = '#f1f5f9';
+                recBox.style.color = '#475569';
+            }
+        }
+
+        // Initialize
+        updateSIP();
+        updateLumpsum();
+        updateTax();
+    </script>
+</body>
+</html>
