@@ -114,13 +114,31 @@
                 <div class="form-group">
                     <label>Basic Salary (Yearly ₹)</label>
                     <input type="number" id="basic" placeholder="Usually 40-50% of CTC" oninput="calculateSalary()">
-                    <div class="note">Expected around 40-50% of CTC. Used for HRA.</div>
+                    <div class="note">Expected around 40-50% of CTC. Used for PF & HRA.</div>
+                </div>
+                <div class="form-group">
+                    <label>Professional Tax (Yearly ₹)</label>
+                    <input type="number" id="pt" value="2400" placeholder="Default 2400" oninput="calculateSalary()">
+                    <div class="note">Usually ₹200/month (₹2400/yr). Some states differ.</div>
+                </div>
+                <div class="form-group">
+                    <label>Employer NPS (Yearly ₹)</label>
+                    <div style="display: flex; gap: 10px;">
+                         <input type="number" id="nps" placeholder="Employer Contribution" oninput="calculateSalary()">
+                    </div>
+                     <div class="note">Allowed as deduction in New Regime (u/s 80CCD(2)).</div>
+                </div>
+                <div class="form-group">
+                    <label>Telephone Allowance (Yearly ₹)</label>
+                    <input type="number" id="tel" placeholder="Annual Amount" oninput="calculateSalary()">
+                    <div class="note">Deducted from New Regime Taxable Income.</div>
                 </div>
                 
                 <h3 style="margin-top: 25px; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px;">Deductions (Old Regime)</h3>
                 <div class="form-group">
-                    <label>Section 80C (EPF, PPF, LIC, etc.)</label>
-                    <input type="number" id="80c" placeholder="Max 1.5 Lakh" oninput="calculateSalary()">
+                    <label>Additional Section 80C (Excl. Employee PF)</label>
+                    <input type="number" id="80c" placeholder="ELSS, LIC, PPF etc." oninput="calculateSalary()">
+                    <div class="note">Employee PF (12% of Basic) is automatically added to 80C.</div>
                 </div>
                 <div class="form-group">
                     <label>Section 80D (Medical Insurance)</label>
@@ -195,6 +213,33 @@
                         <span class="currency-symbol">₹</span>
                         <input type="number" id="tax-other" value="0" oninput="calculateTotalTax()">
                     </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Professional Tax (Yearly)</label>
+                    <div class="input-wrapper">
+                        <span class="currency-symbol">₹</span>
+                        <input type="number" id="tax-pt" value="2400" oninput="calculateTotalTax()">
+                    </div>
+                    <div class="note">Available in Old Regime Only.</div>
+                </div>
+
+                <div class="input-group">
+                    <label>Employer NPS (Yearly)</label>
+                    <div class="input-wrapper">
+                        <span class="currency-symbol">₹</span>
+                        <input type="number" id="tax-nps" value="50000" oninput="calculateTotalTax()">
+                    </div>
+                    <div class="note">Deductible in Both Regimes (u/s 80CCD(2)).</div>
+                </div>
+
+                <div class="input-group">
+                    <label>Telephone Allowance (Yearly)</label>
+                    <div class="input-wrapper">
+                        <span class="currency-symbol">₹</span>
+                        <input type="number" id="tax-tel" value="0" oninput="calculateTotalTax()">
+                    </div>
+                    <div class="note">Deductible in New Regime Only (as requested).</div>
                 </div>
 
                 <h3 class="section-title">Tax Saving Deductions (Old Regime)</h3>
@@ -375,12 +420,31 @@
 </div>
 
 <script>
-    // --- UTILITIES ---5-26)
-    // Slabs: 0-4L(Nil), 4-8L(5%), 8-12L(10%), 12-16L(15%), 16-20L(20%), 20-24L(25%), >24L(30%)
+    function switchTab(tabId) {
+        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        
+        // Highlight active tab
+        const tabs = document.querySelectorAll('.tab');
+        tabs.forEach(t => {
+            if(t.getAttribute('onclick').includes(tabId)) {
+                t.classList.add('active');
+            }
+        });
+    }
+
+    function formatCurrency(num) {
+        return "₹" + Math.round(num).toLocaleString('en-IN');
+    }
+
+    // --- UTILITIES ---
+    // FY 25-26 Slabs: 0-4L(Nil), 4-8L(5%), 8-12L(10%), 12-16L(15%), 16-20L(20%), 20-24L(25%), >24L(30%)
     function calculateNewRegimeTaxLogic(income) {
         let tax = 0;
         let originalIncome = income;
         
+        // --- 1. Calculate Taxable Income Tax ---
         if (income > 2400000) {
             tax += (income - 2400000) * 0.30;
             income = 2400000;
@@ -405,32 +469,16 @@
             tax += (income - 400000) * 0.05;
         }
 
-        // Rebate u/s 87A: If taxable income <= 12L, Tax is 0.
-        // Tax on 12L => 4-8(5%) + 8-12(10%) = 4L*0.05 + 4L*0.10 = 20k + 40k = 60k
+        // --- 2. 87A Rebate for Income <= 12L ---
         if (originalIncome <= 1200000) {
             return 0;
         } 
         
-        // Marginal relief approx for slightly above 12L
-        // Only if (Tax Payable) > (Income - 12L)
+        // --- 3. Marginal Relief ---
+        // If tax calculated > (Income - 12L), then tax is capped at (Income - 12L)
         let excessIncome = originalIncome - 1200000;
         if (originalIncome > 1200000 && tax > excessIncome) {
-           tax = excessIncome
-        if (income > 700000) {
-            tax += (income - 700000) * 0.10;
-            income = 700000;
-        }
-        if (income > 300000) {
-            tax += (income - 300000) * 0.05;
-        }
-
-        // Rebate u/s 87A: If taxable income <= 7L, Tax is 0.
-        // Also handle marginal relief for slightly above 7L (simplification: exact logic is complex but key is tax shouldn't > income excess)
-         if (originalIncome <= 700000) {
-            return 0;
-        } else if (originalIncome < 727777 && tax > (originalIncome - 700000)) {
-            // Marginal relief approximation
-            tax = originalIncome - 700000;
+           tax = excessIncome;
         }
 
         return tax;
@@ -481,15 +529,29 @@
     function calculateSalary() {
         const ctc = parseFloat(document.getElementById('ctc').value) || 0;
         const basic = parseFloat(document.getElementById('basic').value) || 0;
+        const pt = parseFloat(document.getElementById('pt').value) || 0;
+        const nps = parseFloat(document.getElementById('nps').value) || 0; // Employer NPS
+        const telephone = parseFloat(document.getElementById('tel').value) || 0; // Telephone Allowance
         
+        // --- PF CALCULATIONS ---
+        const employerPF = basic * 0.12;
+        const employeePF = basic * 0.12;
+        
+        // Deriving Gross Salary
+        // CTC incl Employer PF and Employer NPS.
+        // Gross = CTC - Employer PF - Employer NPS
+        const grossSalary = Math.max(0, ctc - employerPF - nps);
+
         // Old Regime Inputs
         const rentPaid = parseFloat(document.getElementById('rentPaid').value) || 0;
         const isMetro = document.getElementById('metro').value === 'true';
-        let ded80c = parseFloat(document.getElementById('80c').value) || 0;
+        const otherDed80c = parseFloat(document.getElementById('80c').value) || 0;
         const ded80d = parseFloat(document.getElementById('80d').value) || 0;
         const otherDed = parseFloat(document.getElementById('otherDeductions').value) || 0;
 
-        if (ded80c > 150000) ded80c = 150000;
+        // Total 80C = Employee PF + User Input (Max 1.5L)
+        let total80c = employeePF + otherDed80c;
+        if (total80c > 150000) total80c = 150000;
 
         // HRA Calculation
         let hraExemption = 0;
@@ -500,36 +562,51 @@
         }
 
         // --- OLD REGIME ---
+        // Deductions: Std Ded (50k) + PT + HRA + 80C + 80D + 80CCD(2) [NPS] + Others
+        // Note: Employer NPS (80CCD(2)) is allowed in OLD regime too, over and above 1.5L 80C.
         const oldStdDed = 50000;
-        const totalOldDed = ded80c + ded80d + otherDed + hraExemption + oldStdDed;
-        let oldTaxable = Math.max(0, ctc - totalOldDed);
+        const totalOldDed = total80c + ded80d + otherDed + hraExemption + oldStdDed + pt + nps;
+        let oldTaxable = Math.max(0, grossSalary - totalOldDed);
         let oldTax = getFinalTax(oldTaxable, 'old');
 
         // --- NEW REGIME ---
+        // Deductions: Std Ded (75k) + Employer NPS (80CCD(2)). PT is NOT allowed.
+        // As per user request, restriction of 10% of Basic is removed. Using full NPS amount entered.
+        // Telephone Allowance Deduction: Applied only to New Regime Taxable Income as requested.
+        let allowableNPS = nps;
+        
         const newStdDed = 75000;
-        let newTaxable = Math.max(0, ctc - newStdDed);
+        let newTaxable = Math.max(0, grossSalary - newStdDed - allowableNPS - telephone);
         let newTax = getFinalTax(newTaxable, 'new');
 
         // --- UPDATE UI ---
         // New
-        document.getElementById('new-gross').innerText = formatCurrency(ctc);
+        document.getElementById('new-gross').innerText = formatCurrency(grossSalary);
+        // Show combined deductions text
+        document.getElementById('new-std').innerText = `${formatCurrency(newStdDed)} + ${formatCurrency(allowableNPS)} (NPS) + ${formatCurrency(telephone)} (Tel)`;
         document.getElementById('new-taxable').innerText = formatCurrency(newTaxable);
         document.getElementById('new-tax').innerText = formatCurrency(newTax);
-        document.getElementById('new-inhand').innerText = formatCurrency(ctc - newTax);
-        document.getElementById('new-monthly').innerText = formatCurrency((ctc - newTax)/12);
+        
+        // New In-Hand = Gross - Tax - Employee PF - PT
+        const newInHandVal = grossSalary - newTax - employeePF - pt;
+        document.getElementById('new-inhand').innerText = formatCurrency(newInHandVal);
+        document.getElementById('new-monthly').innerText = formatCurrency(newInHandVal/12);
 
         // Old
-        document.getElementById('old-gross').innerText = formatCurrency(ctc);
+        document.getElementById('old-gross').innerText = formatCurrency(grossSalary);
         document.getElementById('old-hra').innerText = formatCurrency(hraExemption);
         document.getElementById('old-deductions').innerText = formatCurrency(totalOldDed);
         document.getElementById('old-taxable').innerText = formatCurrency(oldTaxable);
         document.getElementById('old-tax').innerText = formatCurrency(oldTax);
-        document.getElementById('old-inhand').innerText = formatCurrency(ctc - oldTax);
-        document.getElementById('old-monthly').innerText = formatCurrency((ctc - oldTax)/12);
+        
+        // Old In-Hand = Gross - Tax - Employee PF - PT
+        const oldInHandVal = grossSalary - oldTax - employeePF - pt;
+        document.getElementById('old-inhand').innerText = formatCurrency(oldInHandVal);
+        document.getElementById('old-monthly').innerText = formatCurrency(oldInHandVal/12);
 
         // Recommendation
-        const newInHand = ctc - newTax;
-        const oldInHand = ctc - oldTax;
+        const newInHand = newInHandVal;
+        const oldInHand = oldInHandVal;
         const recBox = document.getElementById('recommendation');
         
         let diff = newInHand - oldInHand;
@@ -556,6 +633,9 @@
     function calculateTotalTax() {
         const grossIncome = parseFloat(document.getElementById('tax-income').value) || 0;
         const otherIncome = parseFloat(document.getElementById('tax-other').value) || 0;
+        const pt = parseFloat(document.getElementById('tax-pt').value) || 0;
+        const nps = parseFloat(document.getElementById('tax-nps').value) || 0;
+        const tel = parseFloat(document.getElementById('tax-tel').value) || 0;
         const totalIncome = grossIncome + otherIncome;
 
         const ded80c = Math.min(parseFloat(document.getElementById('tax-80c').value) || 0, 150000);
@@ -563,11 +643,13 @@
         const hra = parseFloat(document.getElementById('tax-hra').value) || 0;
 
         // --- OLD REGIME ---
-        let taxableOld = Math.max(0, totalIncome - 50000 - ded80c - ded80d - hra);
+        // Deductions: Std Ded (50k) + PT + HRA + 80C + 80D + NPS (80CCD(2))
+        let taxableOld = Math.max(0, totalIncome - 50000 - pt - ded80c - ded80d - hra - nps);
         let taxOld = getFinalTax(taxableOld, 'old');
 
         // --- NEW REGIME ---
-        let taxableNew = Math.max(0, totalIncome - 75000);
+        // Deductions: Std Ded (75k) + NPS (80CCD(2)) + Tel Allowance
+        let taxableNew = Math.max(0, totalIncome - 75000 - nps - tel);
         let taxNew = getFinalTax(taxableNew, 'new');
 
         // --- RENDER ---
